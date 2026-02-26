@@ -1,6 +1,7 @@
 import { PredictionResult } from "@/lib/prediction";
 import RiskGauge from "./RiskGauge";
 import ModelResultCard from "./ModelResultCard";
+import ECGAnalysisCard from "./ECGAnalysisCard";
 import { AlertTriangle, BarChart3, Shield } from "lucide-react";
 
 export default function PredictionResults({ result }: { result: PredictionResult }) {
@@ -42,6 +43,10 @@ export default function PredictionResults({ result }: { result: PredictionResult
         </div>
       )}
 
+      {/* ECG Analysis */}
+      {result.ecgAnalysis && (
+        <ECGAnalysisCard analysis={result.ecgAnalysis} />
+      )}
       {/* Individual Models */}
       <div className="animate-fade-up stagger-2">
         <div className="flex items-center gap-2 mb-3">
