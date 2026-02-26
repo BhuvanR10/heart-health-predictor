@@ -7,8 +7,10 @@ import { Activity, Heart, Cpu } from "lucide-react";
 const Index = () => {
   const [result, setResult] = useState<PredictionResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [lastPatientData, setLastPatientData] = useState<PatientData | null>(null);
 
   const handleSubmit = (data: PatientData) => {
+    setLastPatientData(data);
     setIsLoading(true);
     setResult(null);
     // Simulate processing delay
@@ -77,7 +79,7 @@ const Index = () => {
                 <p className="text-sm text-muted-foreground font-display">Running prediction models...</p>
               </div>
             )}
-            {result && !isLoading && <PredictionResults result={result} />}
+            {result && !isLoading && lastPatientData && <PredictionResults result={result} patientData={lastPatientData} />}
             {!result && !isLoading && (
               <div className="card-elevated p-12 flex flex-col items-center justify-center gap-4 text-center">
                 <div className="w-16 h-16 rounded-2xl bg-accent flex items-center justify-center">
