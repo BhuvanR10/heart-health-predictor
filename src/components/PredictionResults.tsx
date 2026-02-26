@@ -1,10 +1,17 @@
-import { PredictionResult } from "@/lib/prediction";
+import { PredictionResult, PatientData } from "@/lib/prediction";
+import { generatePDFReport } from "@/lib/generateReport";
 import RiskGauge from "./RiskGauge";
 import ModelResultCard from "./ModelResultCard";
 import ECGAnalysisCard from "./ECGAnalysisCard";
-import { AlertTriangle, BarChart3, Shield } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle, BarChart3, Shield, FileDown } from "lucide-react";
 
-export default function PredictionResults({ result }: { result: PredictionResult }) {
+interface PredictionResultsProps {
+  result: PredictionResult;
+  patientData: PatientData;
+}
+
+export default function PredictionResults({ result, patientData }: PredictionResultsProps) {
   return (
     <div className="space-y-6">
       {/* Ensemble Score */}
@@ -60,6 +67,19 @@ export default function PredictionResults({ result }: { result: PredictionResult
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Export Button */}
+      <div className="animate-fade-up stagger-3">
+        <Button
+          className="w-full gap-2 font-display font-semibold"
+          variant="outline"
+          size="lg"
+          onClick={() => generatePDFReport(result, patientData)}
+        >
+          <FileDown className="w-4 h-4" />
+          Export PDF Report
+        </Button>
       </div>
     </div>
   );
