@@ -11,6 +11,19 @@ export interface PatientData {
   smoking: boolean;
   familyHistory: boolean;
   exercise: "none" | "light" | "moderate" | "heavy";
+  ecgFile?: File | null;
+}
+
+export interface ECGAnalysis {
+  heartRate: number;
+  rhythm: "Normal Sinus" | "Sinus Tachycardia" | "Sinus Bradycardia" | "Atrial Fibrillation" | "Atrial Flutter";
+  prInterval: number; // ms
+  qrsDuration: number; // ms
+  qtInterval: number; // ms
+  stSegment: "Normal" | "Elevated" | "Depressed";
+  tWave: "Normal" | "Inverted" | "Peaked";
+  findings: string[];
+  riskContribution: number; // 0-30 additional risk points
 }
 
 export interface ModelPrediction {
@@ -26,6 +39,7 @@ export interface PredictionResult {
   ensembleScore: number;
   ensembleRiskLevel: "low" | "moderate" | "high" | "critical";
   topRiskFactors: string[];
+  ecgAnalysis?: ECGAnalysis;
 }
 
 function getRiskLevel(score: number): "low" | "moderate" | "high" | "critical" {
@@ -113,21 +127,86 @@ function getTopRiskFactors(data: PatientData): string[] {
   return factors.slice(0, 4).map(f => f.name);
 }
 
+function simulateECGAnalysis(): ECGAnalysis {
+  const rhythms: ECGAnalysis["rhythm"][] = ["Normal Sinus", "Sinus Tachycardia", "Sinus Bradycardia", "Atrial Fibrillation", "Atrial Flutter"];
+  const rhythmWeights = [0.45, 0.2, 0.1, 0.15, 0.1];
+  let rand = Math.random();
+  let rhythmIdx = 0;
+  for (let i = 0; i < rhythmWeights.length; i++) {
+    rand -= rhythmWeights[i];
+    if (rand <= 0) { rhythmIdx = i; break; }
+  }
+  const rhythm = rhythms[rhythmIdx];
+
+  const heartRate = rhythm === "Sinus Tachycardia" ? 100 + Math.round(Math.random() * 30)
+    : rhythm === "Sinus Bradycardia" ? 45 + Math.round(Math.random() * 15)
+    : rhythm === "Atrial Fibrillation" ? 80 + Math.round(Math.random() * 70)
+    : 60 + Math.round(Math.random() * 30);
+
+  const prInterval = rhythm === "Atrial Fibrillation" ? 0 : 120 + Math.round(Math.random() * 80);
+  const qrsDuration = 80 + Math.round(Math.random() * 50);
+  const qtInterval = 350 + Math.round(Math.random() * 100);
+
+  const stOptions: ECGAnalysis["stSegment"][] = ["Normal", "Elevated", "Depressed"];
+  const stSegment = stOptions[Math.floor(Math.random() * (rhythm === "Normal Sinus" ? 1.5 : 3))];
+  const tOptions: ECGAnalysis["tWave"][] = ["Normal", "Inverted", "Peaked"];
+  const tWave = tOptions[Math.floor(Math.random() * (rhythm === "Normal Sinus" ? 1.5 : 3))];
+
+  const findings: string[] = [];
+  let riskContribution = 0;
+
+  if (rhythm !== "Normal Sinus") {
+    findings.push(`${rhythm} detected`);
+    riskContribution += rhythm === "Atrial Fibrillation" ? 15 : rhythm === "Atrial Flutter" ? 12 : 5;
+  }
+  if (heartRate > 100) { findings.push("Tachycardia"); riskContribution += 4; }
+  if (heartRate < 50) { findings.push("Bradycardia"); riskContribution += 3; }
+  if (prInterval > 200) { findings.push("Prolonged PR interval (possible 1st degree AV block)"); riskContribution += 5; }
+  if (qrsDuration > 120) { findings.push("Wide QRS complex"); riskContribution += 6; }
+  if (qtInterval > 440) { findings.push("Prolonged QT interval"); riskContribution += 5; }
+  if (stSegment === "Elevated") { findings.push("ST elevation (possible ischemia)"); riskContribution += 10; }
+  if (stSegment === "Depressed") { findings.push("ST depression"); riskContribution += 7; }
+  if (tWave === "Inverted") { findings.push("T-wave inversion"); riskContribution += 5; }
+  if (tWave === "Peaked") { findings.push("Peaked T-waves"); riskContribution += 4; }
+  if (findings.length === 0) findings.push("No significant abnormalities");
+
+  return { heartRate, rhythm, prInterval, qrsDuration, qtInterval, stSegment, tWave, findings, riskContribution: Math.min(30, riskContribution) };
+}
+
 export function predictRisk(data: PatientData): PredictionResult {
+  const ecgAnalysis = data.ecgFile ? simulateECGAnalysis() : undefined;
+  const ecgBoost = ecgAnalysis?.riskContribution ?? 0;
+
   const predictions = [
     simulateLogisticRegression(data),
     simulateRandomForest(data),
     simulateNeuralNetwork(data),
     simulateSVM(data),
   ];
+
+  // Add ECG contribution to each model
+  if (ecgBoost > 0) {
+    predictions.forEach(p => {
+      p.riskScore = Math.min(100, p.riskScore + Math.round(ecgBoost * (0.7 + Math.random() * 0.6)));
+      p.riskLevel = getRiskLevel(p.riskScore);
+    });
+  }
+
   const ensembleScore = Math.round(
     predictions.reduce((sum, p) => sum + p.riskScore * p.confidence, 0) /
     predictions.reduce((sum, p) => sum + p.confidence, 0)
   );
+
+  const topRiskFactors = getTopRiskFactors(data);
+  if (ecgAnalysis && ecgAnalysis.findings[0] !== "No significant abnormalities") {
+    topRiskFactors.unshift("ECG Abnormality");
+  }
+
   return {
     predictions,
     ensembleScore,
     ensembleRiskLevel: getRiskLevel(ensembleScore),
-    topRiskFactors: getTopRiskFactors(data),
+    topRiskFactors: topRiskFactors.slice(0, 5),
+    ecgAnalysis,
   };
 }
