@@ -14,7 +14,75 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      predictions: {
+        Row: {
+          blood_sugar: number
+          bmi: number
+          cholesterol: number
+          created_at: string
+          diastolic_bp: number
+          ecg_analysis: Json | null
+          ensemble_risk_level: string
+          ensemble_score: number
+          exercise: string
+          family_history: boolean
+          has_ecg: boolean
+          hdl: number
+          id: string
+          ldl: number
+          model_results: Json
+          patient_age: number
+          patient_gender: string
+          smoking: boolean
+          systolic_bp: number
+          top_risk_factors: string[]
+        }
+        Insert: {
+          blood_sugar: number
+          bmi: number
+          cholesterol: number
+          created_at?: string
+          diastolic_bp: number
+          ecg_analysis?: Json | null
+          ensemble_risk_level: string
+          ensemble_score: number
+          exercise?: string
+          family_history?: boolean
+          has_ecg?: boolean
+          hdl: number
+          id?: string
+          ldl: number
+          model_results?: Json
+          patient_age: number
+          patient_gender: string
+          smoking?: boolean
+          systolic_bp: number
+          top_risk_factors?: string[]
+        }
+        Update: {
+          blood_sugar?: number
+          bmi?: number
+          cholesterol?: number
+          created_at?: string
+          diastolic_bp?: number
+          ecg_analysis?: Json | null
+          ensemble_risk_level?: string
+          ensemble_score?: number
+          exercise?: string
+          family_history?: boolean
+          has_ecg?: boolean
+          hdl?: number
+          id?: string
+          ldl?: number
+          model_results?: Json
+          patient_age?: number
+          patient_gender?: string
+          smoking?: boolean
+          systolic_bp?: number
+          top_risk_factors?: string[]
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
