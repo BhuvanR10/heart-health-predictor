@@ -1,22 +1,35 @@
 import { useState } from "react";
 import { PatientData, PredictionResult, predictRisk } from "@/lib/prediction";
+import { savePrediction } from "@/lib/savePrediction";
 import PatientForm from "@/components/PatientForm";
 import PredictionResults from "@/components/PredictionResults";
+import PredictionHistory from "@/components/PredictionHistory";
 import { Activity, Heart, Cpu } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const [result, setResult] = useState<PredictionResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [lastPatientData, setLastPatientData] = useState<PatientData | null>(null);
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
+  const { toast } = useToast();
 
   const handleSubmit = (data: PatientData) => {
     setLastPatientData(data);
     setIsLoading(true);
     setResult(null);
     // Simulate processing delay
-    setTimeout(() => {
-      setResult(predictRisk(data));
+    setTimeout(async () => {
+      const prediction = predictRisk(data);
+      setResult(prediction);
       setIsLoading(false);
+      try {
+        await savePrediction(data, prediction);
+        setHistoryRefreshKey((k) => k + 1);
+        toast({ title: "Prediction saved", description: "Results stored in database." });
+      } catch {
+        toast({ title: "Save failed", description: "Could not store results.", variant: "destructive" });
+      }
     }, 1500);
   };
 
@@ -92,6 +105,11 @@ const Index = () => {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Prediction History */}
+        <div className="mt-8">
+          <PredictionHistory refreshKey={historyRefreshKey} />
         </div>
       </main>
     </div>
